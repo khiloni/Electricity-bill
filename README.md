@@ -1,3 +1,3 @@
-python
 streamlit
-plotly
+pandas
+numpy
