@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+import random
 from datetime import datetime, timedelta
 
 # Page configuration
@@ -222,8 +222,8 @@ with col2:
     # Usage trend over time
     dates = pd.date_range(start=datetime.now(), periods=30, freq='D')
     # Create some variation in daily usage
-    np.random.seed(42)  # For consistent results
-    daily_usage = [daily_consumption + np.random.normal(0, 0.1) for _ in range(30)]
+    random.seed(42)  # For consistent results
+    daily_usage = [daily_consumption + random.uniform(-0.2, 0.2) for _ in range(30)]
     
     df_trend = pd.DataFrame({
         'Date': dates,
@@ -361,5 +361,4 @@ st.markdown("⚡ **Electricity Usage Calculator** | Built with Streamlit | Data 
 st.subheader("📝 Deployment Requirements")
 with st.expander("requirements.txt"):
     st.code("""streamlit
-pandas
-numpy""")
+pandas""")
