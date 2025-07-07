@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
+import numpy as np
 from datetime import datetime, timedelta
 
 # Page configuration
@@ -33,15 +32,24 @@ st.markdown("""
     }
     
     .info-box {
-        background-color: #34495e;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #1f77b4;
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border-left: 4px solid #3498db;
         margin: 1rem 0;
+        color: #ecf0f1;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
     
     .stSelectbox > div > div {
         background-color: #ffffff;
+    }
+    
+    .chart-container {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -201,30 +209,37 @@ if has_dishwasher:
 if has_water_heater:
     breakdown_data.append(["Water Heater", 1.5])
 
-# Create charts
+# Create charts using Streamlit's built-in charting
 col1, col2 = st.columns(2)
 
 with col1:
     if breakdown_data:
         df_breakdown = pd.DataFrame(breakdown_data, columns=['Appliance', 'Consumption (kWh)'])
-        fig_pie = px.pie(df_breakdown, values='Consumption (kWh)', names='Appliance', 
-                        title="Daily Energy Distribution")
-        fig_pie.update_traces(textposition='inside', textinfo='percent+label')
-        st.plotly_chart(fig_pie, use_container_width=True)
+        st.subheader("📊 Daily Energy Distribution")
+        st.bar_chart(df_breakdown.set_index('Appliance'))
 
 with col2:
     # Usage trend over time
-    dates = [datetime.now() + timedelta(days=i) for i in range(30)]
-    daily_usage = [daily_consumption + (i % 3) * 0.1 for i in range(30)]  # Slight variation
+    dates = pd.date_range(start=datetime.now(), periods=30, freq='D')
+    # Create some variation in daily usage
+    np.random.seed(42)  # For consistent results
+    daily_usage = [daily_consumption + np.random.normal(0, 0.1) for _ in range(30)]
     
     df_trend = pd.DataFrame({
         'Date': dates,
         'Usage (kWh)': daily_usage
     })
     
-    fig_trend = px.line(df_trend, x='Date', y='Usage (kWh)', 
-                       title="30-Day Usage Trend")
-    st.plotly_chart(fig_trend, use_container_width=True)
+    st.subheader("📈 30-Day Usage Trend")
+    st.line_chart(df_trend.set_index('Date'))
+
+# Appliance consumption table
+if breakdown_data:
+    st.subheader("🔌 Appliance Consumption Details")
+    df_appliances = pd.DataFrame(breakdown_data, columns=['Appliance', 'Daily Consumption (kWh)'])
+    df_appliances['Daily Cost (₹)'] = df_appliances['Daily Consumption (kWh)'] * 6
+    df_appliances['Monthly Cost (₹)'] = df_appliances['Daily Cost (₹)'] * 30
+    st.dataframe(df_appliances, use_container_width=True)
 
 # Cost analysis
 st.subheader("💰 Cost Analysis")
@@ -272,6 +287,33 @@ with col4:
              "⭐⭐⭐⭐" if daily_consumption < 8 else 
              "⭐⭐⭐" if daily_consumption < 12 else "⭐⭐")
 
+# Comparison with average usage
+st.subheader("📊 Usage Comparison")
+
+# Average usage data for different house sizes
+avg_usage = {
+    "1BHK": 4.5,
+    "2BHK": 6.8,
+    "3BHK": 9.2,
+    "4BHK": 11.5,
+    "5BHK+": 14.0
+}
+
+your_usage = daily_consumption
+average_usage = avg_usage.get(house_size, 8.0)
+
+comparison_data = pd.DataFrame({
+    'Category': ['Your Usage', 'Average Usage'],
+    'Daily Consumption (kWh)': [your_usage, average_usage]
+})
+
+st.bar_chart(comparison_data.set_index('Category'))
+
+if your_usage < average_usage:
+    st.success(f"🎉 Great! Your usage is {average_usage - your_usage:.1f} kWh below average!")
+else:
+    st.warning(f"⚠️ Your usage is {your_usage - average_usage:.1f} kWh above average. Consider energy-saving measures.")
+
 # Tips for energy saving
 st.subheader("💡 Energy Saving Tips")
 
@@ -281,7 +323,9 @@ tips = [
     "🔌 Unplug devices when not in use to avoid phantom power consumption",
     "🌞 Use natural light during the day and switch off unnecessary lights",
     "🧺 Use washing machine with full loads and cold water when possible",
-    "🌡️ Regular maintenance of appliances improves their efficiency"
+    "🌡️ Regular maintenance of appliances improves their efficiency",
+    "⏰ Use timer switches for water heaters and geysers",
+    "🪟 Proper insulation reduces AC and heating costs"
 ]
 
 for tip in tips:
@@ -302,10 +346,20 @@ if name:
     Daily: {daily_consumption:.2f} kWh (₹{daily_consumption * 6:.2f})<br>
     Weekly: {weekly_consumption:.2f} kWh (₹{weekly_consumption * 6:.2f})<br>
     Monthly: {monthly_consumption:.2f} kWh (₹{monthly_bill:.2f})<br>
-    Yearly: {monthly_consumption * 12:.2f} kWh (₹{yearly_bill:.2f})
+    Yearly: {monthly_consumption * 12:.2f} kWh (₹{yearly_bill:.2f})<br><br>
+    
+    <strong>Efficiency Status:</strong><br>
+    {'🟢 Below Average - Excellent!' if daily_consumption < average_usage else '🟡 Above Average - Room for improvement'}
     </div>
     """, unsafe_allow_html=True)
 
 # Footer
 st.markdown("---")
 st.markdown("⚡ **Electricity Usage Calculator** | Built with Streamlit | Data is for estimation purposes only")
+
+# Create requirements.txt content
+st.subheader("📝 Deployment Requirements")
+with st.expander("requirements.txt"):
+    st.code("""streamlit
+pandas
+numpy""")
